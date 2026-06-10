@@ -150,7 +150,11 @@ export default function ProductPage() {
               <p style={{ color: '#666', lineHeight: 1.8, fontSize: 15, marginBottom: 24 }}>{product.description}</p>
             )}
             <div style={{ background: '#FFF4F8', border: '1px solid #F9D0E3', borderRadius: 14, padding: '14px 18px', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[[Check,'En stock'],[Truck,'Livraison disponible'],[CreditCard,'Paiement à la livraison']].map(([Icon, text], i) => (
+              {([
+  [Check,      'En stock'                ] as const,
+  [Truck,      'Livraison disponible'    ] as const,
+  [CreditCard, 'Paiement à la livraison' ] as const,
+] as const).map(([Icon, text], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: '#C85B80', fontWeight: 500 }}>
                   <Icon size={14} />{text}
                 </div>

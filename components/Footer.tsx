@@ -84,10 +84,10 @@ export default function Footer() {
             <p style={{ fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', color: '#aaa', fontWeight: 600, marginBottom: 20 }}>Contact</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                [MessageCircle, 'WhatsApp disponible'       ],
-                [Mail,          'contact@oshoppingbyshaw.ci'],
-                [MapPin,        "Abidjan, Côte d'Ivoire"    ],
-                [Phone,         'Service client 7j/7'       ],
+                [MessageCircle, 'WhatsApp disponible'       ] as const,
+                [Mail,          'contact@oshoppingbyshaw.ci'] as const,
+                [MapPin,        "Abidjan, Côte d'Ivoire"    ] as const,
+                [Phone,         'Service client 7j/7'       ] as const,
               ].map(([Icon, text], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: '#666' }}>
                   <Icon size={14} color="#C85B80" />

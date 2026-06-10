@@ -13,6 +13,20 @@ import { slugify } from '@/lib/utils'
 interface Category    { id: string; name: string }
 interface ProductImage { id: string; url: string; position: number }
 
+interface FormState {
+  name: string
+  slug: string
+  description: string
+  price: number
+  compare_price: number | ''
+  category_id: string
+  stock: number
+  is_active: boolean
+  is_featured: boolean
+  is_new: boolean
+  tags: string
+}
+
 export default function ModifierProduitPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router  = useRouter()
@@ -25,9 +39,9 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
   const [deletingImg,    setDeletingImg]    = useState<string | null>(null)
   const [error,          setError]          = useState('')
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '', slug: '', description: '',
-    price: 0, compare_price: '' as any,
+    price: 0, compare_price: '',
     category_id: '', stock: 0,
     is_active: true, is_featured: false, is_new: false, tags: '',
   })
@@ -58,9 +72,7 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
 
   const deleteExistingImage = async (imgId: string, imgUrl: string) => {
     setDeletingImg(imgId)
-    // Supprimer de la table
     await supabase.from('product_images').delete().eq('id', imgId)
-    // Supprimer du storage si possible
     try {
       const path = imgUrl.split('/products/')[1]
       if (path) await supabase.storage.from('products').remove([path])
@@ -86,7 +98,6 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
 
     if (e) { setError(e.message); setSaving(false); return }
 
-    // Upload nouvelles images
     const basePosition = existingImages.length
     for (let i = 0; i < newImages.length; i++) {
       const file = newImages[i]
@@ -105,9 +116,9 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, color: '#aaa' }}>Chargement...</div>
 
-  const inputStyle = { width: '100%', border: '1.5px solid #F0C0D4', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none' }
-  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }
-  const cardStyle  = { background: 'white', borderRadius: 16, padding: 24, border: '1px solid #eee', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.04)' }
+  const inputStyle: React.CSSProperties = { width: '100%', border: '1.5px solid #F0C0D4', borderRadius: 10, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none' }
+  const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }
+  const cardStyle:  React.CSSProperties = { background: 'white', borderRadius: 16, padding: 24, border: '1px solid #eee', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,.04)' }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -122,13 +133,47 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
       <div style={cardStyle}>
         <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 18, color: '#333' }}>Informations</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div><label style={labelStyle}>Nom *</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} /></div>
-          <div><label style={labelStyle}>Slug</label><input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }} /></div>
-          <div><label style={labelStyle}>Description</label><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' as const }} /></div>
+          <div>
+            <label style={labelStyle}>Nom *</label>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Slug</label>
+            <input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }} />
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={labelStyle}>Prix FCFA *</label><input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} style={inputStyle} /></div>
-            <div><label style={labelStyle}>Prix barré</label><input type="number" value={form.compare_price} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value }))} style={inputStyle} placeholder="Optionnel" /></div>
-            <div><label style={labelStyle}>Stock</label><input type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Prix FCFA *</label>
+              <input
+                type="number"
+                value={form.price}
+                onChange={e => setForm(f => ({ ...f, price: Number(e.target.value) }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Prix barré</label>
+              <input
+                type="number"
+                value={form.compare_price}
+                onChange={e => setForm(f => ({ ...f, compare_price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                style={inputStyle}
+                placeholder="Optionnel"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Stock</label>
+              <input
+                type="number"
+                value={form.stock}
+                onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))}
+                style={inputStyle}
+              />
+            </div>
             <div>
               <label style={labelStyle}>Catégorie</label>
               <select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))} style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}>
@@ -137,7 +182,10 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
               </select>
             </div>
           </div>
-          <div><label style={labelStyle}>Tags (virgules)</label><input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} style={inputStyle} placeholder="déco, rose, artisanal" /></div>
+          <div>
+            <label style={labelStyle}>Tags (virgules)</label>
+            <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} style={inputStyle} placeholder="déco, rose, artisanal" />
+          </div>
         </div>
       </div>
 
@@ -145,7 +193,11 @@ export default function ModifierProduitPage({ params }: { params: Promise<{ id: 
       <div style={cardStyle}>
         <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 18, color: '#333' }}>Options</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {([['is_active','Produit actif'],['is_featured','Produit vedette'],['is_new','Nouveau produit']] as const).map(([key, label]) => (
+          {([
+            ['is_active',   'Produit actif']   as const,
+            ['is_featured', 'Produit vedette'] as const,
+            ['is_new',      'Nouveau produit'] as const,
+          ]).map(([key, label]) => (
             <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
               <div onClick={() => setForm(f => ({ ...f, [key]: !f[key] }))}
                 style={{ width: 40, height: 22, borderRadius: 100, background: form[key] ? '#C85B80' : '#d1d5db', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
