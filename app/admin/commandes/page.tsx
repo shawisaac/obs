@@ -2,7 +2,7 @@
 // CHEMIN : src/app/admin/commandes/page.tsx
 // Gestion des commandes
 // ─────────────────────────────────────────────
-import { adminGetAllOrders } from '@/lib/queries'
+import { adminGetAllOrders } from '@/lib/queries-admin'
 import CommandesClient from './CommandesClient'
 
 export default async function CommandesPage() {

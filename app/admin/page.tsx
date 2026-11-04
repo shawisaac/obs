@@ -2,7 +2,7 @@
 // CHEMIN : app/admin/page.tsx
 // ─────────────────────────────────────────────
 import { ShoppingCart, Package, TrendingUp, Clock } from 'lucide-react'
-import { adminGetStats } from '@/lib/queries'
+import { adminGetStats } from '@/lib/queries-admin'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { ORDER_STATUS, type OrderStatus } from '@/types'
 import Link from 'next/link'

@@ -3,15 +3,24 @@
 // ─────────────────────────────────────────────
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ShoppingCart, Heart, Check, Truck, CreditCard, Minus, Plus, ChevronLeft, ArrowRight, X, Star } from 'lucide-react'
+import { ShoppingCart, Heart, Check, Truck, CreditCard, Minus, Plus, ChevronLeft, ArrowRight, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useCart } from '@/context/CartContext'
 import { formatPrice, generateOrderNumber } from '@/lib/utils'
 import type { Product } from '@/types'
+
+const PERKS: { Icon: LucideIcon; text: string }[] = [
+  { Icon: Check,      text: 'En stock' },
+  { Icon: Truck,      text: 'Livraison disponible' },
+  { Icon: CreditCard, text: 'Paiement à la livraison' },
+]
+
+const SELECT = '*, category:categories(id,name,slug), images:product_images(id,url,alt,position)'
 
 export default function ProductPage() {
   const params = useParams()
@@ -32,8 +41,7 @@ export default function ProductPage() {
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
-        .from('products')
-        .select('*, category:categories(id,name,slug), images:product_images(id,url,alt,position)')
+        .from('products').select(SELECT)
         .eq('slug', slug).eq('is_active', true).single()
 
       if (!data) { setLoading(false); return }
@@ -41,8 +49,7 @@ export default function ProductPage() {
       setProduct(prod)
 
       let q = supabase
-        .from('products')
-        .select('*, category:categories(id,name,slug), images:product_images(id,url,alt,position)')
+        .from('products').select(SELECT)
         .eq('is_active', true).neq('id', data.id).limit(4)
       if (data.category_id) q = q.eq('category_id', data.category_id)
       const { data: rel } = await q
@@ -55,19 +62,25 @@ export default function ProductPage() {
   const handleOrder = async () => {
     if (!product || !form.customer_name || !form.customer_phone) return
     setSending(true)
-    const { data: order } = await supabase.from('orders').insert({
+
+    // L'identifiant est généré ici : un visiteur ne peut pas relire la commande
+    const orderId = crypto.randomUUID()
+    const { error: orderErr } = await supabase.from('orders').insert({
+      id: orderId,
       order_number: generateOrderNumber(),
       customer_name: form.customer_name, customer_phone: form.customer_phone,
       customer_address: form.customer_address, customer_city: form.customer_city,
       subtotal: product.price * qty, total: product.price * qty, status: 'pending',
-    }).select().single()
-    if (order) {
-      await supabase.from('order_items').insert({
-        order_id: order.id, product_id: product.id,
-        product_name: product.name, product_image: product.images?.[0]?.url || null,
-        price: product.price, quantity: qty,
-      })
-    }
+    })
+    if (orderErr) { setSending(false); alert('Erreur : ' + orderErr.message); return }
+
+    const { error: itemErr } = await supabase.from('order_items').insert({
+      order_id: orderId, product_id: product.id,
+      product_name: product.name, product_image: product.images?.[0]?.url || null,
+      price: product.price, quantity: qty,
+    })
+    if (itemErr) { setSending(false); alert('Erreur : ' + itemErr.message); return }
+
     setSending(false); setSent(true)
     setTimeout(() => { setSent(false); setOrderOpen(false); setForm({ customer_name: '', customer_phone: '', customer_address: '', customer_city: '' }) }, 3000)
   }
@@ -150,12 +163,8 @@ export default function ProductPage() {
               <p style={{ color: '#666', lineHeight: 1.8, fontSize: 15, marginBottom: 24 }}>{product.description}</p>
             )}
             <div style={{ background: '#FFF4F8', border: '1px solid #F9D0E3', borderRadius: 14, padding: '14px 18px', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {([
-  [Check,      'En stock'                ] as const,
-  [Truck,      'Livraison disponible'    ] as const,
-  [CreditCard, 'Paiement à la livraison' ] as const,
-] as const).map(([Icon, text], i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: '#C85B80', fontWeight: 500 }}>
+              {PERKS.map(({ Icon, text }) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: '#C85B80', fontWeight: 500 }}>
                   <Icon size={14} />{text}
                 </div>
               ))}
@@ -173,7 +182,7 @@ export default function ProductPage() {
                 <Heart size={18} fill={liked ? '#C85B80' : 'none'} stroke={liked ? '#C85B80' : '#aaa'} />
               </button>
             </div>
-            <button type="button" onClick={() => { for(let i=0;i<qty;i++) addItem(product) }}
+            <button type="button" onClick={() => { for (let i = 0; i < qty; i++) addItem(product) }}
               style={{ width: '100%', padding: 14, background: '#C85B80', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', marginBottom: 10 }}>
               <ShoppingCart size={16} /> Ajouter au panier
             </button>
@@ -185,7 +194,7 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* ── PRODUITS SIMILAIRES — AMÉLIORÉS ── */}
+        {/* Produits similaires */}
         {related.length > 0 && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
@@ -200,7 +209,6 @@ export default function ProductPage() {
               </Link>
             </div>
 
-            {/* Grille produits similaires */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
               {related.map(p => {
                 const img = p.images?.[0]?.url
@@ -211,7 +219,6 @@ export default function ProductPage() {
                     onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-5px)'; el.style.boxShadow = '0 16px 40px rgba(200,91,128,.14)' }}
                     onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'none'; el.style.boxShadow = '0 2px 12px rgba(0,0,0,.05)' }}
                   >
-                    {/* Image */}
                     <div style={{ aspectRatio: '1', background: '#FFF0F5', position: 'relative', overflow: 'hidden' }}>
                       {img ? (
                         <Image src={img} alt={p.name} fill style={{ objectFit: 'cover', transition: 'transform .5s' }} sizes="(max-width: 640px) 50vw, 25vw" />
@@ -220,14 +227,12 @@ export default function ProductPage() {
                           <span style={{ fontFamily: 'Georgia, serif', color: '#C85B80', opacity: .3, fontSize: 12, fontStyle: 'italic' }}>{"O'Shopping"}</span>
                         </div>
                       )}
-                      {/* Badges */}
                       <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 5 }}>
                         {p.is_new && <span style={{ background: '#C85B80', color: 'white', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, textTransform: 'uppercase' }}>Nouveau</span>}
                         {disc && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>-{disc}%</span>}
                       </div>
                     </div>
 
-                    {/* Infos */}
                     <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {p.category && (
                         <span style={{ fontSize: 10, fontWeight: 600, color: '#C85B80', textTransform: 'uppercase', letterSpacing: 1 }}>
