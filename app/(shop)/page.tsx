@@ -8,20 +8,24 @@ import { getFeaturedProducts, getNewProducts } from '@/lib/queries'
 import ProductCard from '@/components/ProductCard'
 import AnimatedSection from '@/components/AnimatedSection'
 
+// Toujours afficher les produits à jour (pas de cache de la page)
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const FEATURES = [
-  { Icon: Truck,         title: 'Livraison rapide',   sub: 'Abidjan & toute la CI'  },
-  { Icon: CreditCard,    title: 'Paiement livraison', sub: 'Zéro frais cachés'       },
-  { Icon: Package,       title: 'Emballage soigné',   sub: 'Chaque commande protégée'},
-  { Icon: MessageCircle, title: 'Support WhatsApp',   sub: "Réponse rapide 7j/7"    },
+  { Icon: Truck,         title: 'Livraison rapide',   sub: 'Abidjan & toute la CI'   },
+  { Icon: CreditCard,    title: 'Paiement livraison', sub: 'Zéro frais cachés'        },
+  { Icon: Package,       title: 'Emballage soigné',   sub: 'Chaque commande protégée' },
+  { Icon: MessageCircle, title: 'Support WhatsApp',   sub: 'Réponse rapide 7j/7'      },
 ]
 
 export default async function HomePage() {
   const [featured, newProducts] = await Promise.all([
     getFeaturedProducts(), getNewProducts(),
   ])
-  const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g,'') || '2250000000000'
-  // Remplacez cette URL par votre lien Google Maps exact
-  const mapsUrl = process.env.NEXT_PUBLIC_MAPS_URL || "https://maps.google.com/?q=Abidjan,Côte+d'Ivoire"
+  const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '') || '2250000000000'
+  // Mettez votre lien Google Maps exact dans .env.local (NEXT_PUBLIC_MAPS_URL)
+  const mapsUrl = process.env.NEXT_PUBLIC_MAPS_URL || 'https://maps.google.com/?q=Abidjan,Cote+d+Ivoire'
 
   return (
     <>
@@ -37,7 +41,7 @@ export default async function HomePage() {
             Tout ce dont vous<br /><em style={{ color: '#C85B80' }}>avez besoin</em>
           </h1>
           <p style={{ fontSize: 16, color: '#666', lineHeight: 1.8, maxWidth: 520, margin: '0 auto 36px', animation: 'fadeUp .7s .2s ease both' }}>
-            Décoration, meubles, valises, verres, balançoires et bien plus encore. Livraison partout en Côte d'Ivoire avec paiement à la livraison.
+            {"Décoration, meubles, valises, verres, balançoires et bien plus encore. Livraison partout en Côte d'Ivoire avec paiement à la livraison."}
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeUp .7s .3s ease both' }}>
             <Link href="/boutique" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#C85B80', color: 'white', padding: '14px 32px', borderRadius: 12, fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
@@ -77,8 +81,6 @@ export default async function HomePage() {
         </div>
       </div>
 
-
-
       {/* PRODUITS VEDETTES */}
       {featured.length > 0 && (
         <AnimatedSection delay={100}>
@@ -91,7 +93,7 @@ export default async function HomePage() {
                 <p style={{ color: '#aaa', fontSize: 14 }}>Nos pièces les plus appréciées</p>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-                {featured.slice(0,4).map(p => <ProductCard key={p.id} product={p} />)}
+                {featured.slice(0, 4).map(p => <ProductCard key={p.id} product={p} />)}
               </div>
               <div style={{ textAlign: 'center', marginTop: 40 }}>
                 <Link href="/boutique" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#C85B80', border: '1.5px solid #C85B80', background: 'transparent', padding: '12px 32px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
@@ -131,7 +133,7 @@ export default async function HomePage() {
                 <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 300, color: '#1A1A1A' }}>Nouvelles Arrivées</h2>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-                {newProducts.slice(0,4).map(p => <ProductCard key={p.id} product={p} />)}
+                {newProducts.slice(0, 4).map(p => <ProductCard key={p.id} product={p} />)}
               </div>
             </div>
           </section>

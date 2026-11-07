@@ -5,11 +5,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Search, Eye, X } from 'lucide-react'
+import { Search, Eye, X } from 'lucide-react'
 import { adminUpdateOrderStatus } from '@/lib/queries'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { ORDER_STATUS, type Order, type OrderStatus } from '@/types'
-import { useRouter } from 'next/navigation'
 
 const STATUS_OPTIONS: OrderStatus[] = ['pending','confirmed','processing','shipped','delivered','cancelled']
 
@@ -23,7 +22,6 @@ const COLOR: Record<string, string> = {
 }
 
 export default function CommandesClient({ initialOrders }: { initialOrders: Order[] }) {
-  const router = useRouter()
   const [orders,   setOrders]   = useState(initialOrders)
   const [search,   setSearch]   = useState('')
   const [filter,   setFilter]   = useState<string>('all')
@@ -31,7 +29,12 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
   const [updating, setUpdating] = useState<string | null>(null)
 
   const filtered = orders.filter(o => {
-    const matchSearch = !search || o.customer_name.toLowerCase().includes(search.toLowerCase()) || o.order_number.includes(search) || o.customer_phone.includes(search)
+    const q = search.toLowerCase()
+    const matchSearch = !search
+      || o.customer_name.toLowerCase().includes(q)
+      || o.order_number.toLowerCase().includes(q)
+      || o.customer_phone.includes(search)
+      || (o.items || []).some(i => i.product_name.toLowerCase().includes(q))
     const matchFilter = filter === 'all' || o.status === filter
     return matchSearch && matchFilter
   })
@@ -57,7 +60,7 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..." className="input-field pl-10" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher (client, produit, n°)..." className="input-field pl-10" />
         </div>
         <select value={filter} onChange={e => setFilter(e.target.value)}
           className="input-field max-w-[200px] cursor-pointer">
@@ -72,7 +75,7 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
-                {['N° commande', 'Client', 'Téléphone', 'Ville', 'Total', 'Statut', 'Date', ''].map(h => (
+                {['N° commande', 'Client', 'Téléphone', 'Articles commandés', 'Total', 'Statut', 'Date', ''].map(h => (
                   <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -82,12 +85,28 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
                 <tr><td colSpan={8} className="px-5 py-12 text-center text-gray-400">Aucune commande trouvée</td></tr>
               ) : filtered.map(order => {
                 const s = ORDER_STATUS[order.status]
+                const items = order.items || []
                 return (
-                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors align-top">
                     <td className="px-5 py-4 font-mono text-xs text-gray-600 whitespace-nowrap">{order.order_number}</td>
-                    <td className="px-5 py-4 font-medium text-gray-800 whitespace-nowrap">{order.customer_name}</td>
-                    <td className="px-5 py-4 text-gray-500">{order.customer_phone}</td>
-                    <td className="px-5 py-4 text-gray-500">{order.customer_city || '—'}</td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <p className="font-medium text-gray-800">{order.customer_name}</p>
+                      <p className="text-xs text-gray-400">{order.customer_city || '—'}</p>
+                    </td>
+                    <td className="px-5 py-4 text-gray-500 whitespace-nowrap">{order.customer_phone}</td>
+                    <td className="px-5 py-4 min-w-[220px]">
+                      {items.length === 0 ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : (
+                        <ul className="space-y-1">
+                          {items.map(it => (
+                            <li key={it.id} className="text-xs text-gray-700">
+                              <span className="font-semibold text-rose-600">{it.quantity} ×</span> {it.product_name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
                     <td className="px-5 py-4 font-semibold text-rose-600 whitespace-nowrap">{formatPrice(order.total)}</td>
                     <td className="px-5 py-4">
                       <select
@@ -117,8 +136,8 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
 
       {/* Modal détail commande */}
       {selected && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
@@ -134,25 +153,35 @@ export default function CommandesClient({ initialOrders }: { initialOrders: Orde
                   <p className="font-semibold text-gray-800">{selected.customer_name}</p>
                   <p className="text-sm text-gray-600">{selected.customer_phone}</p>
                   {selected.customer_email && <p className="text-sm text-gray-600">{selected.customer_email}</p>}
-                  {selected.customer_address && <p className="text-sm text-gray-500 mt-1">{selected.customer_address}, {selected.customer_city}</p>}
+                  {(selected.customer_address || selected.customer_city) && (
+                    <p className="text-sm text-gray-500 mt-1">{[selected.customer_address, selected.customer_city].filter(Boolean).join(', ')}</p>
+                  )}
                 </div>
 
-                {selected.items && selected.items.length > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Articles</p>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Articles commandés</p>
+                  {!selected.items || selected.items.length === 0 ? (
+                    <p className="text-sm text-gray-400">Aucun article enregistré pour cette commande.</p>
+                  ) : (
                     <div className="space-y-2">
                       {selected.items.map(item => (
-                        <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">{item.product_name}</p>
-                            <p className="text-xs text-gray-400">Qté : {item.quantity}</p>
+                        <div key={item.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-rose-50 flex-shrink-0">
+                            {item.product_image && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                            )}
                           </div>
-                          <p className="text-sm font-semibold text-rose-600">{formatPrice(item.price * item.quantity)}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800">{item.product_name}</p>
+                            <p className="text-xs text-gray-400">{formatPrice(item.price)} × {item.quantity}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-rose-600 whitespace-nowrap">{formatPrice(item.price * item.quantity)}</p>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                   <span className="font-semibold text-gray-700">Total</span>
