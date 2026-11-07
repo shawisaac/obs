@@ -1,20 +1,25 @@
 // ─────────────────────────────────────────────
 // CHEMIN : src/app/admin/produits/ProduitsClient.tsx
-// Partie client — liste et gestion des produits
+// Liste des produits — tableau (PC) / cartes (téléphone)
 // ─────────────────────────────────────────────
 'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Plus, Search, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useIsMobile } from '@/lib/useIsMobile'
 import { formatPrice } from '@/lib/utils'
 import type { Product } from '@/types'
-import { useRouter } from 'next/navigation'
+
+function stockStyle(stock: number): React.CSSProperties {
+  if (stock > 5) return { background: '#dcfce7', color: '#15803d' }
+  if (stock > 0) return { background: '#fef3c7', color: '#92400e' }
+  return { background: '#fee2e2', color: '#991b1b' }
+}
 
 export default function ProduitsClient({ initialProducts }: { initialProducts: Product[] }) {
-  const router   = useRouter()
+  const isMobile = useIsMobile()
   const [products, setProducts] = useState(initialProducts)
   const [search,   setSearch]   = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -31,93 +36,125 @@ export default function ProduitsClient({ initialProducts }: { initialProducts: P
   const deleteProduct = async (id: string) => {
     if (!confirm('Supprimer ce produit définitivement ?')) return
     setDeleting(id)
-    await supabase.from('products').delete().eq('id', id)
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (error) { alert('Erreur : ' + error.message); setDeleting(null); return }
     setProducts(prev => prev.filter(p => p.id !== id))
     setDeleting(null)
   }
 
+  const Thumb = ({ p, size }: { p: Product; size: number }) => (
+    <div style={{ width: size, height: size, borderRadius: 12, overflow: 'hidden', background: '#FCE8F0', flexShrink: 0 }}>
+      {p.images?.[0] && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={p.images[0].url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      )}
+    </div>
+  )
+
+  const ActiveToggle = ({ p }: { p: Product }) => (
+    <button onClick={() => toggleActive(p)} title={p.is_active ? 'Désactiver' : 'Activer'}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit', padding: 0, color: p.is_active ? '#16a34a' : '#9ca3af' }}>
+      {p.is_active ? <ToggleRight size={22} color="#22c55e" /> : <ToggleLeft size={22} color="#9ca3af" />}
+      {p.is_active ? 'Actif' : 'Inactif'}
+    </button>
+  )
+
+  const iconBtn: React.CSSProperties = { padding: 8, borderRadius: 10, background: '#f5f5f5', border: 'none', cursor: 'pointer', display: 'flex', color: '#777' }
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
+      {/* En-tête */}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: 12, marginBottom: 18 }}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{products.length} produit{products.length > 1 ? 's' : ''}</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1A1A1A' }}>Produits</h1>
+          <p style={{ fontSize: 13, color: '#aaa', marginTop: 2 }}>{products.length} produit{products.length > 1 ? 's' : ''}</p>
         </div>
-        <Link href="/admin/produits/nouveau" className="btn-primary">
+        <Link href="/admin/produits/nouveau"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#C85B80', color: 'white', padding: '11px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
           <Plus size={16} /> Nouveau produit
         </Link>
       </div>
 
       {/* Recherche */}
-      <div className="relative mb-6 max-w-sm">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un produit..." className="input-field pl-10" />
+      <div style={{ position: 'relative', marginBottom: 18, maxWidth: isMobile ? 'none' : 380 }}>
+        <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un produit..."
+          style={{ width: '100%', border: '1.5px solid #F0C0D4', borderRadius: 10, padding: '10px 12px 10px 36px', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: 'white' }} />
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                {['Produit', 'Catégorie', 'Prix', 'Stock', 'Statut', 'Actions'].map(h => (
-                  <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">Aucun produit trouvé</td></tr>
-              ) : filtered.map(product => (
-                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                  {/* Produit */}
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden bg-rose-50 flex-shrink-0">
-                        {product.images?.[0] ? (
-                          <Image src={product.images[0].url} alt={product.name} width={44} height={44} className="w-full h-full object-cover" />
-                        ) : <div className="w-full h-full bg-gradient-to-br from-rose-100 to-rose-200" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-800 truncate max-w-[180px]">{product.name}</p>
-                        <p className="text-xs text-gray-400 truncate max-w-[180px]">{product.slug}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-gray-500 text-xs">{product.category?.name || '—'}</td>
-                  <td className="px-5 py-4 font-semibold text-rose-600 whitespace-nowrap">{formatPrice(product.price)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${product.stock > 5 ? 'bg-green-100 text-green-700' : product.stock > 0 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                      {product.stock} en stock
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button onClick={() => toggleActive(product)} className="flex items-center gap-1.5 text-xs font-medium transition-colors"
-                      title={product.is_active ? 'Désactiver' : 'Activer'}>
-                      {product.is_active
-                        ? <><ToggleRight size={20} className="text-green-500" /> <span className="text-green-600">Actif</span></>
-                        : <><ToggleLeft  size={20} className="text-gray-400" />  <span className="text-gray-400">Inactif</span></>
-                      }
-                    </button>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Link href={`/admin/produits/${product.id}/modifier`}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
-                        <Pencil size={15} />
-                      </Link>
-                      <button onClick={() => deleteProduct(product.id)} disabled={deleting === product.id}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {isMobile === null ? null : filtered.length === 0 ? (
+        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #eee', padding: '48px 16px', textAlign: 'center', color: '#bbb', fontSize: 14 }}>
+          Aucun produit trouvé
         </div>
-      </div>
+      ) : isMobile ? (
+        /* ───── CARTES (téléphone) ───── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filtered.map(p => (
+            <div key={p.id} style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', boxShadow: '0 2px 12px rgba(0,0,0,.04)', padding: 12, opacity: p.is_active ? 1 : .65 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <Thumb p={p} size={72} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 600, color: '#1A1A1A', fontSize: 15, lineHeight: 1.3 }}>{p.name}</p>
+                  <p style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>{p.category?.name || 'Sans catégorie'}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, color: '#C85B80', fontSize: 14 }}>{formatPrice(p.price)}</span>
+                    <span style={{ ...stockStyle(p.stock), fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 100 }}>{p.stock} en stock</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f5f5f5', paddingTop: 10 }}>
+                <ActiveToggle p={p} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Link href={`/admin/produits/${p.id}/modifier`} style={{ ...iconBtn, textDecoration: 'none' }} aria-label="Modifier"><Pencil size={16} /></Link>
+                  <button onClick={() => deleteProduct(p.id)} disabled={deleting === p.id} style={{ ...iconBtn, color: '#ef4444', background: '#fef2f2' }} aria-label="Supprimer"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* ───── TABLEAU (ordinateur) ───── */
+        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f0f0f0', boxShadow: '0 2px 12px rgba(0,0,0,.04)', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #f3f3f3', background: '#fafafa' }}>
+                  {['Produit', 'Catégorie', 'Prix', 'Stock', 'Statut', 'Actions'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '12px 18px', fontSize: 11, fontWeight: 600, color: '#aaa', textTransform: 'uppercase', letterSpacing: .8, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f7f7f7' }}>
+                    <td style={{ padding: '12px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <Thumb p={p} size={44} />
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontWeight: 500, color: '#1A1A1A', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+                          <p style={{ fontSize: 12, color: '#bbb', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.slug}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '12px 18px', color: '#777', fontSize: 12.5 }}>{p.category?.name || '—'}</td>
+                    <td style={{ padding: '12px 18px', fontWeight: 600, color: '#C85B80', whiteSpace: 'nowrap' }}>{formatPrice(p.price)}</td>
+                    <td style={{ padding: '12px 18px' }}>
+                      <span style={{ ...stockStyle(p.stock), fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 100 }}>{p.stock} en stock</span>
+                    </td>
+                    <td style={{ padding: '12px 18px' }}><ActiveToggle p={p} /></td>
+                    <td style={{ padding: '12px 18px' }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Link href={`/admin/produits/${p.id}/modifier`} style={{ ...iconBtn, textDecoration: 'none' }} aria-label="Modifier"><Pencil size={15} /></Link>
+                        <button onClick={() => deleteProduct(p.id)} disabled={deleting === p.id} style={{ ...iconBtn, color: '#ef4444', background: '#fef2f2' }} aria-label="Supprimer"><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
