@@ -2,7 +2,7 @@
 // CHEMIN : src/components/Footer.tsx
 // ─────────────────────────────────────────────
 import Link from 'next/link'
-import { MapPin, Mail, MessageCircle, Phone, Heart } from 'lucide-react'
+import { MapPin, Mail, MessageCircle, Phone} from 'lucide-react'
 import FooterLogo from './FooterLogo'
 
 const FacebookIcon  = () => (
@@ -28,9 +28,9 @@ const InstagramIcon = () => (
 const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g,'') || '225'
 
 const SOCIALS = [
-  { Icon: FacebookIcon,  label: 'Facebook',  href: 'https://facebook.com',  bg: '#1877F2'                                                   },
-  { Icon: TikTokIcon,    label: 'TikTok',    href: 'https://tiktok.com',    bg: '#010101'                                                   },
-  { Icon: InstagramIcon, label: 'Instagram', href: 'https://instagram.com', bg: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' },
+  { Icon: FacebookIcon,  label: 'Facebook',  href: 'https://www.facebook.com/Oshoppingbyshaw/?http_ref=eyJ0cyI6MTc5NDA1NzM4MTAwMCwiciI6IiJ9',  bg: '#1877F2'                                                   },
+  { Icon: TikTokIcon,    label: 'TikTok',    href: 'https://www.tiktok.com/@shawshopping?_r=1&_t=ZS-9BCtewIxnRh',    bg: '#010101'                                                   },
+  { Icon: InstagramIcon, label: 'Instagram', href: 'https://www.instagram.com/oshopping_by_shaw?dlrf=MWJtM24xNWszdnI4eg==', bg: 'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)' },
   { Icon: MessageCircle, label: 'WhatsApp',  href: `https://wa.me/${waNumber}`, bg: '#25D366'                                               },
 ]
 
@@ -104,7 +104,7 @@ export default function Footer() {
             © {new Date().getFullYear()} {"O'Shopping by Shaw"}. Tous droits réservés.
           </span>
           <span style={{ fontSize: 12, color: '#444', display: 'flex', alignItems: 'center', gap: 5 }}>
-            Développé avec <Heart size={11} color="#C85B80" fill="#C85B80" /> par{' '}
+            Développé par{' '}
             <span style={{ color: '#C85B80', fontWeight: 600 }}>AURA DIGITAL</span>
           </span>
         </div>

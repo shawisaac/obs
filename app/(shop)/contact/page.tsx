@@ -9,8 +9,8 @@ import ContactForm from './ContactForm'
 export const metadata: Metadata = { title: 'Contact' }
 
 const INFOS = [
-  { icon: MessageCircle, titre: 'WhatsApp', valeur: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+225 XX XX XX XX', sub: 'Disponible 7j/7 — Réponse rapide' },
-  { icon: Mail,          titre: 'Email',    valeur: 'contact@oshoppingbyshaw.ci',                                  sub: 'Réponse sous 24h' },
+  { icon: MessageCircle, titre: 'WhatsApp', valeur: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+225 01 43 8188 69', sub: 'Disponible 7j/7 — Réponse rapide' },
+  { icon: Mail,          titre: 'Email',    valeur: 'oshoppingbyshaw@gmail.com',                                  sub: 'Réponse sous 24h' },
   { icon: MapPin,        titre: 'Adresse',  valeur: "Abidjan, Côte d'Ivoire",                                      sub: 'Livraison nationale disponible' },
   { icon: Clock,         titre: 'Horaires', valeur: 'Lun–Sam, 8h–20h',                                            sub: 'Dimanche sur WhatsApp' },
 ]

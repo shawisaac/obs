@@ -23,9 +23,9 @@ export default async function HomePage() {
   const [featured, newProducts] = await Promise.all([
     getFeaturedProducts(), getNewProducts(),
   ])
-  const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '') || '2250000000000'
+  const waNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '') || '22501438188'
   // Mettez votre lien Google Maps exact dans .env.local (NEXT_PUBLIC_MAPS_URL)
-  const mapsUrl = process.env.NEXT_PUBLIC_MAPS_URL || 'https://maps.google.com/?q=Abidjan,Cote+d+Ivoire'
+  const mapsUrl = process.env.NEXT_PUBLIC_MAPS_URL || 'https://maps.app.goo.gl/oZDjAeW9ZoKGryWp7?g_st=iwb'
 
   return (
     <>
